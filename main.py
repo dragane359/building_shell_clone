@@ -3,6 +3,9 @@ import os
 import subprocess
 from pathlib import Path
 import shlex
+from app import Trie
+import readline
+from app.autocomplete import make_completer
 
 def parse_text(arg, get_exec_bool = False):
     i = 0
@@ -50,7 +53,6 @@ def parse_text(arg, get_exec_bool = False):
 def process_stdout_stderr_output_file(output, action, out_file, error = None):
     # out_file_has_content = os.path.exists(out_file) and os.path.getsize(out_file) > 0
     if action == ' 2>> ':
-        # 2 means write the errors to the files, log the output
         if len(output) > 0:
             sys.stdout.write(output)
         with open(out_file, "a", encoding="utf-8") as f:
@@ -79,7 +81,8 @@ def process_stdout_stderr_output_file(output, action, out_file, error = None):
         with open(out_file, "w", encoding="utf-8") as f:
             f.write(output)
 
-def eval_command(command):
+
+def eval_command(command, executives_trie):
     out_file, action = None, None
     for act_opt in [' 2>> ', ' 1>> ', ' >> ', ' 2> ', ' 1> ', ' > ']:
         if act_opt in command:
@@ -193,14 +196,37 @@ def eval_command(command):
 
     # sys.stdout.flush()
 
+def get_exec_list():
+    path_dirs = os.environ['PATH'].split(os.pathsep)
+    all_execs_list = []
+    for path in path_dirs:
+        if not os.path.exists(path):
+            continue
+        files_in_path = os.listdir(path)
+        for file in files_in_path:
+            full_file_path = os.path.join(path, file)
+            if os.access(full_file_path, os.X_OK):
+                all_execs_list.append(file)
+    return all_execs_list
+
 def main():
-    # TODO: Uncomment the code below to pass the first stage
+    
+    executives_trie = Trie.Trie()
+    trie_root = executives_trie.root
+    # to handle tab
+    readline.set_completer(make_completer(executives_trie))
+    readline.parse_and_bind('tab: complete')
+    # Add execs to trie
+    words = ['echo', 'exit']
+    words.extend(get_exec_list())
+    for word in words:
+        executives_trie.add_word(trie_root, word, 0)
     while True:
         sys.stdout.write("$ ")
         command = input()
         if command == 'exit':
             break
-        eval_command(command)
+        eval_command(command, executives_trie)
 
 if __name__ == "__main__":
     main()
