@@ -6,6 +6,16 @@ import shlex
 from app import Trie
 import readline
 from app.autocomplete import make_completer
+from collections import defaultdict
+
+# import logging
+
+# # Configure logging to write to a file once
+# logging.basicConfig(
+#     filename=os.path.join('/Users/ganeshpremakumar/Documents/shell-codecrafters/codecrafters-shell-python/app', "output.txt"),
+#     level=logging.INFO,
+#     format="%(message)s"  # Keeps it looking like normal print statements
+# )
 
 def parse_text(arg, get_exec_bool = False):
     i = 0
@@ -82,7 +92,7 @@ def process_stdout_stderr_output_file(output, action, out_file, error = None):
             f.write(output)
 
 
-def eval_command(command, executives_trie):
+def eval_command(command):
     out_file, action = None, None
     for act_opt in [' 2>> ', ' 1>> ', ' >> ', ' 2> ', ' 1> ', ' > ']:
         if act_opt in command:
@@ -213,20 +223,35 @@ def main():
     
     executives_trie = Trie.Trie()
     trie_root = executives_trie.root
+
+    # filepaths trie to handle filepath autocompletions
+    # put in the full paths in the trie
+    filepaths_trie = Trie.Trie()
+    filepaths_root = filepaths_trie.root
+    cwd_files_hm = {}
+
     # to handle tab
-    readline.set_completer(make_completer(executives_trie))
+    current_delims = readline.get_completer_delims()
+    new_delims = current_delims.replace('/', '')
+    readline.set_completer_delims(new_delims)
+    readline.set_completer(make_completer(executives_trie, cwd_files_hm))
     readline.parse_and_bind('tab: complete')
     # Add execs to trie
-    words = ['echo', 'exit']
-    words.extend(get_exec_list())
-    for word in words:
+    execs = ['echo', 'exit']
+    execs.extend(get_exec_list())
+    for word in execs:
         executives_trie.add_word(trie_root, word, 0)
+    # hashmap for cwd : files in it?
+    filenames = os.listdir('.')
+    for filename in filenames:
+        filepaths_trie.add_word(filepaths_root, filename, 0)
+    cwd_files_hm[os.getcwd()] = filepaths_trie
     while True:
         sys.stdout.write("$ ")
         command = input()
         if command == 'exit':
             break
-        eval_command(command, executives_trie)
+        eval_command(command)
 
 if __name__ == "__main__":
     main()

@@ -9,12 +9,13 @@ class Trie:
         self.root = TrieNode('-1')
         self.triewords = []
         self.trie_startwith_words = []
+        self.word_end_char = 'end'
 
     def add_word(self, node, word, word_idx):
         if word_idx > len(word) - 1:
             self.triewords.append(word)
-            new_node = TrieNode('.')
-            node.children['.'] = new_node
+            new_node = TrieNode(self.word_end_char)
+            node.children[self.word_end_char] = new_node
             return
         curr_char = word[word_idx]
         if curr_char in node.children:
@@ -36,7 +37,7 @@ class Trie:
         return bol
     
     def check_word_in_trie(self, node, word, word_idx):
-        if word_idx > len(word) - 1 and '.' in node.children:
+        if word_idx > len(word) - 1 and self.word_end_char in node.children:
             return True
         bol = False
         for child_char in node.children:
@@ -51,7 +52,7 @@ class Trie:
         return self.trie_startwith_words
     
     def get_words_start_with(self, node, word, word_idx, curr_str):
-        if '.' in node.children and word_idx > len(word) - 1:
+        if  self.word_end_char in node.children and word_idx > len(word) - 1:
             self.trie_startwith_words.append(curr_str)
         if word_idx <= len(word) - 1:
             child_char = word[word_idx]
@@ -73,12 +74,12 @@ class Trie:
     
     def get_max_word_formed_with_singular_chain(self, node, prefix):
         eligible_length = len(node.children)
-        if '.' in node.children:
+        if self.word_end_char in node.children:
             self.prefix = max(self.prefix, prefix)
             return
         elif eligible_length == 1:
             for child_char in node.children:
-                if child_char != '.':
+                if child_char != self.word_end_char:
                     self.get_max_word_formed_with_singular_chain(node.children[child_char], prefix + child_char)
     
     def get_lcp(self, node, word):
