@@ -7,15 +7,7 @@ from app import Trie
 import readline
 from app.autocomplete import make_completer
 from collections import defaultdict
-
-# import logging
-
-# # Configure logging to write to a file once
-# logging.basicConfig(
-#     filename=os.path.join('/Users/ganeshpremakumar/Documents/shell-codecrafters/codecrafters-shell-python/app', "output.txt"),
-#     level=logging.INFO,
-#     format="%(message)s"  # Keeps it looking like normal print statements
-# )
+from app.builtins import complete
 
 def parse_text(arg, get_exec_bool = False):
     i = 0
@@ -92,7 +84,7 @@ def process_stdout_stderr_output_file(output, action, out_file, error = None):
             f.write(output)
 
 
-def eval_command(command):
+def eval_command(command, complete_builtin_hm):
     out_file, action = None, None
     for act_opt in [' 2>> ', ' 1>> ', ' >> ', ' 2> ', ' 1> ', ' > ']:
         if act_opt in command:
@@ -128,7 +120,7 @@ def eval_command(command):
         else:
             sys.stdout.write(res)
     elif exec_name == 'type':
-        if command.split(' ')[1] in ('echo', 'type', 'exit', 'pwd', 'cd'):
+        if command.split(' ')[1] in ('echo', 'type', 'exit', 'pwd', 'cd', 'complete', 'jobs'):
             sys.stdout.write(f'{command.split(' ')[1]} is a shell builtin')
             sys.stdout.write("\n")
 
@@ -167,6 +159,10 @@ def eval_command(command):
         else:
             sys.stdout.write(f'cd: {new_dir}: No such file or directory')
             sys.stdout.write("\n")
+    elif exec_name == 'complete':
+        complete.handle(command, complete_builtin_hm)
+    elif exec_name == 'jobs':
+        pass
     else:
         found = False
         if not command.startswith(exec_name):
@@ -220,7 +216,6 @@ def get_exec_list():
     return all_execs_list
 
 def main():
-    
     executives_trie = Trie.Trie()
     trie_root = executives_trie.root
 
@@ -233,9 +228,7 @@ def main():
     # to handle tab
     current_delims = readline.get_completer_delims()
     new_delims = current_delims.replace('/', '')
-    readline.set_completer_delims(new_delims)
-    readline.set_completer(make_completer(executives_trie, cwd_files_hm))
-    readline.parse_and_bind('tab: complete')
+
     # Add execs to trie
     execs = ['echo', 'exit']
     execs.extend(get_exec_list())
@@ -246,12 +239,18 @@ def main():
     for filename in filenames:
         filepaths_trie.add_word(filepaths_root, filename, 0)
     cwd_files_hm[os.getcwd()] = filepaths_trie
+
+    complete_builtin_hm = {}
+
+    readline.set_completer_delims(new_delims)
+    readline.set_completer(make_completer(executives_trie, cwd_files_hm, complete_builtin_hm))
+    readline.parse_and_bind('tab: complete')
     while True:
         sys.stdout.write("$ ")
         command = input()
         if command == 'exit':
             break
-        eval_command(command)
+        eval_command(command, complete_builtin_hm)
 
 if __name__ == "__main__":
     main()

@@ -73,21 +73,19 @@ class Trie:
         return self.get_node_where_prefix_ends(child_node, word, word_idx + 1)
     
     def get_max_word_formed_with_singular_chain(self, node, prefix):
+        self.prefix = max(self.prefix, prefix)
         eligible_length = len(node.children)
         if self.word_end_char in node.children:
-            self.prefix = max(self.prefix, prefix)
             return
         elif eligible_length == 1:
             for child_char in node.children:
-                if child_char != self.word_end_char:
-                    self.get_max_word_formed_with_singular_chain(node.children[child_char], prefix + child_char)
+                self.get_max_word_formed_with_singular_chain(node.children[child_char], prefix + child_char)
     
     def get_lcp(self, node, word):
         first_node = self.get_node_where_prefix_ends(node, word, 0)
         if first_node:
             self.prefix = word
             self.get_max_word_formed_with_singular_chain(first_node, word)
-            # print(self.prefix, 'gegegew')
             return self.prefix
         else:
             return word
